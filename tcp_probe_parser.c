@@ -205,7 +205,7 @@ main(int argc, char* argv[]) {
     }
 
     char line[MAX_LINE_LEN];
-
+    double first_timestamp = -1.0;
     char af_fmt[NAME_LEN] = {};
     snprintf(af_fmt, sizeof(af_fmt), "family=%%%ds", PROTOCOL_STR_LEN - 1);
     char src_fmt[NAME_LEN] = {};
@@ -215,7 +215,7 @@ main(int argc, char* argv[]) {
 
     while (fgets(line, sizeof(line), trace_fp)) {
         char* pos;
-        double timestamp;
+        double timestamp, relative_ts;
         char family[PROTOCOL_STR_LEN] = {};
         char src[SRC_STR_LEN] = {};
         char dest[DEST_STR_LEN] = {};
@@ -227,6 +227,12 @@ main(int argc, char* argv[]) {
             fprintf(stderr, "Failed to parse timestamp: %s", line);
             continue;
         }
+
+        // First timestamp reference
+        if (first_timestamp < 0) {
+            first_timestamp = timestamp;
+        }
+        relative_ts = timestamp - first_timestamp;
 
         pos = strstr(line, "family=");
         if (pos) {
@@ -263,10 +269,10 @@ main(int argc, char* argv[]) {
         flow->record_count++;
 
         if (output_all && flow->out_fp) {
-            fprintf(flow->out_fp, "%f %u %u\n", timestamp, cwnd, srtt);
+            fprintf(flow->out_fp, "%.6f %u %u\n", relative_ts, cwnd, srtt);
         } else if (specific_cookie_set && sock_cookie == specific_cookie &&
                    specific_out) {
-            fprintf(specific_out, "%f %u %u\n", timestamp, cwnd, srtt);
+            fprintf(specific_out, "%.6f %u %u\n", relative_ts, cwnd, srtt);
         }
     }
 
