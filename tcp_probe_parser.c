@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <getopt.h>
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -13,8 +14,9 @@
 #define MAX_ADDR_LEN 128
 
 enum {
+    NAME_LEN = 32,
+    MAX_NAME_LEN = NAME_LEN * 8,
     MAX_LINE_LEN = 1024,
-    MAX_NAME_LEN = 100,
     INET6_ADDR_LEN = 46,
     TCP_PORT_LEN = 5,
     SRC_STR_LEN = (INET6_ADDR_LEN + TCP_PORT_LEN + 2),  // count a trailing '\0'
@@ -35,7 +37,7 @@ typedef struct FlowInfo {
 
 FlowInfo* flow_table[HASH_SIZE] = {NULL};
 const char plot_dir_name[] = "plot_files";
-char output_dir[MAX_NAME_LEN] = {};
+char output_dir[NAME_LEN] = {};
 
 unsigned
 hash_sock_cookie(uint64_t sock_cookie)
@@ -63,9 +65,9 @@ find_or_create_flow(uint64_t sock_cookie, const char* src, const char* dest,
     }
 
     new_flow->sock_cookie = sock_cookie;
-    strncpy(new_flow->src, src, SRC_STR_LEN);
-    strncpy(new_flow->dest, dest, DEST_STR_LEN);
-    strncpy(new_flow->family, family, PROTOCOL_STR_LEN);
+    strncpy(new_flow->src, src, SRC_STR_LEN - 1);
+    strncpy(new_flow->dest, dest, DEST_STR_LEN - 1);
+    strncpy(new_flow->family, family, PROTOCOL_STR_LEN - 1);
     new_flow->record_count = 0;
 
     if (write_all) {
@@ -191,11 +193,11 @@ main(int argc, char* argv[]) {
 
     char line[MAX_LINE_LEN];
 
-    char af_fmt[MAX_NAME_LEN] = {};
+    char af_fmt[NAME_LEN] = {};
     snprintf(af_fmt, sizeof(af_fmt), "family=%%%ds", PROTOCOL_STR_LEN - 1);
-    char src_fmt[MAX_NAME_LEN] = {};
+    char src_fmt[NAME_LEN] = {};
     snprintf(src_fmt, sizeof(src_fmt), "src=%%%ds", SRC_STR_LEN - 1);
-    char dest_fmt[MAX_NAME_LEN] = {};
+    char dest_fmt[NAME_LEN] = {};
     snprintf(dest_fmt, sizeof(dest_fmt), "dest=%%%ds", DEST_STR_LEN - 1);
 
     while (fgets(line, sizeof(line), trace_fp)) {
