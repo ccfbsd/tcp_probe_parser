@@ -39,6 +39,19 @@ FlowInfo* flow_table[HASH_SIZE] = {NULL};
 const char plot_dir_name[] = "plot_files";
 char output_dir[NAME_LEN] = {};
 
+void
+free_flow_table(void)
+{
+    for (int i = 0; i < HASH_SIZE; i++) {
+        FlowInfo* curr = flow_table[i];
+        while (curr != NULL) {
+            FlowInfo* tmp = curr;
+            curr = curr->next;
+            free(tmp);
+        }
+    }
+}
+
 unsigned
 hash_sock_cookie(uint64_t sock_cookie)
 {
@@ -282,6 +295,7 @@ main(int argc, char* argv[]) {
     }
 
     free(all_flows);
+    free_flow_table();
 
     // Record the end time
     gettimeofday(&end, NULL);
