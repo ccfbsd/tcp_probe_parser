@@ -13,13 +13,11 @@
 #define MAX_ADDR_LEN 128
 
 enum {
-    INP_IPV4 = 0x1,
-    EIGHT_BYTES_LEN = 8,
     MAX_LINE_LEN = 1024,
     MAX_NAME_LEN = 100,
     INET6_ADDR_LEN = 46,
     TCP_PORT_LEN = 5,
-    SRC_STR_LEN = (INET6_ADDR_LEN + TCP_PORT_LEN + 2),
+    SRC_STR_LEN = (INET6_ADDR_LEN + TCP_PORT_LEN + 2),  // count a trailing '\0'
     DEST_STR_LEN = SRC_STR_LEN,
     PROTOCOL_STR_LEN = 10,
     HASH_SIZE = 1024,
@@ -36,7 +34,8 @@ typedef struct FlowInfo {
 } FlowInfo;
 
 FlowInfo* flow_table[HASH_SIZE] = {NULL};
-char output_dir[MAX_NAME_LEN] = "plot_files";
+const char plot_dir_name[] = "plot_files";
+char output_dir[MAX_NAME_LEN] = {};
 
 unsigned
 hash_sock_cookie(uint64_t sock_cookie)
@@ -51,8 +50,9 @@ find_or_create_flow(uint64_t sock_cookie, const char* src, const char* dest,
     unsigned idx = hash_sock_cookie(sock_cookie);
     FlowInfo* curr = flow_table[idx];
     while (curr) {
-        if (curr->sock_cookie == sock_cookie)
+        if (curr->sock_cookie == sock_cookie) {
             return curr;
+        }
         curr = curr->next;
     }
 
@@ -135,6 +135,9 @@ main(int argc, char* argv[]) {
     uint64_t specific_cookie = 0;
     bool specific_cookie_set = false;
 
+    /* default output directory name */
+    snprintf(output_dir, sizeof(output_dir), "%s", plot_dir_name);
+
     int opt;
     while ((opt = getopt(argc, argv, "f:p:as:")) != -1) {
         switch (opt) {
@@ -143,7 +146,8 @@ main(int argc, char* argv[]) {
                 break;
             case 'p':
                 printf("The prefix for the plot file is: %s\n", optarg);
-                snprintf(output_dir, sizeof(output_dir), "%s.plot_files", optarg);
+                snprintf(output_dir, sizeof(output_dir), "%s.%s", optarg,
+                         plot_dir_name);
                 break;
             case 'a':
                 output_all = true;
@@ -157,8 +161,9 @@ main(int argc, char* argv[]) {
         }
     }
 
-    if (!trace_file)
+    if (!trace_file) {
         print_usage(argv[0]);
+    }
 
     FILE* trace_fp = fopen(trace_file, "r");
     if (!trace_fp) {
@@ -174,7 +179,7 @@ main(int argc, char* argv[]) {
 
     FILE* specific_out = NULL;
     if (specific_cookie_set) {
-        char fname[64];
+        char fname[MAX_NAME_LEN];
         snprintf(fname, sizeof(fname), "%s/%" PRIu64 ".txt", output_dir,
                  specific_cookie);
         specific_out = fopen(fname, "w");
@@ -244,9 +249,8 @@ main(int argc, char* argv[]) {
 
         if (output_all && flow->out_fp) {
             fprintf(flow->out_fp, "%f %u %u\n", timestamp, cwnd, srtt);
-        }
-
-        if (specific_cookie_set && sock_cookie == specific_cookie && specific_out) {
+        } else if (specific_cookie_set && sock_cookie == specific_cookie &&
+                   specific_out) {
             fprintf(specific_out, "%f %u %u\n", timestamp, cwnd, srtt);
         }
     }
@@ -270,8 +274,9 @@ main(int argc, char* argv[]) {
             all_flows[i].sock_cookie, all_flows[i].family, all_flows[i].src,
             all_flows[i].dest, all_flows[i].record_count);
 
-        if (all_flows[i].out_fp)
+        if (all_flows[i].out_fp) {
             fclose(all_flows[i].out_fp);
+        }
     }
 
     free(all_flows);
