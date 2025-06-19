@@ -39,19 +39,6 @@ FlowInfo* flow_table[HASH_SIZE] = {NULL};
 const char plot_dir_name[] = "plot_files";
 char output_dir[NAME_LEN] = {};
 
-void
-free_flow_table(void)
-{
-    for (int i = 0; i < HASH_SIZE; i++) {
-        FlowInfo* curr = flow_table[i];
-        while (curr != NULL) {
-            FlowInfo* tmp = curr;
-            curr = curr->next;
-            free(tmp);
-        }
-    }
-}
-
 unsigned
 hash_sock_cookie(uint64_t sock_cookie)
 {
@@ -137,6 +124,43 @@ print_usage(const char* prog) {
     fprintf(stderr, "Usage: %s -f trace_file [-p name] [-a] [-s sock_cookie]\n",
             prog);
     exit(EXIT_FAILURE);
+}
+
+void
+free_flow_table(void)
+{
+    for (int i = 0; i < HASH_SIZE; i++) {
+        FlowInfo* curr = flow_table[i];
+        while (curr != NULL) {
+            FlowInfo* tmp = curr;
+            curr = curr->next;
+            free(tmp);
+        }
+    }
+}
+
+void
+summary()
+{
+    FlowInfo* all_flows = NULL;
+    size_t flow_count = 0;
+    size_t total_cnts = 0;
+    collect_flows(&all_flows, &flow_count, &total_cnts);
+    qsort(all_flows, flow_count, sizeof(FlowInfo), cmp_by_record_count);
+
+    printf("\nSorted Flow Summary:\n"
+           "    flow_count: %zu\n    total_cnts: %zu\n",
+           flow_count, total_cnts);
+    for (unsigned i = 0; i < flow_count; i++) {
+        printf("    flowid: %" PRIu64 ", family: %s, addr: %s<->%s, cnts: %d\n",
+            all_flows[i].sock_cookie, all_flows[i].family, all_flows[i].src,
+            all_flows[i].dest, all_flows[i].record_count);
+
+        if (all_flows[i].out_fp) {
+            fclose(all_flows[i].out_fp);
+        }
+    }
+    free(all_flows);
 }
 
 int
@@ -281,26 +305,7 @@ main(int argc, char* argv[]) {
         fclose(specific_out);
     }
 
-    FlowInfo* all_flows = NULL;
-    size_t flow_count = 0;
-    size_t total_cnts = 0;
-    collect_flows(&all_flows, &flow_count, &total_cnts);
-    qsort(all_flows, flow_count, sizeof(FlowInfo), cmp_by_record_count);
-
-    printf("\nSorted Flow Summary:\n"
-           "    flow_count: %zu\n    total_cnts: %zu\n",
-           flow_count, total_cnts);
-    for (unsigned i = 0; i < flow_count; i++) {
-        printf("    flowid: %" PRIu64 ", family: %s, addr: %s<->%s, cnts: %d\n",
-            all_flows[i].sock_cookie, all_flows[i].family, all_flows[i].src,
-            all_flows[i].dest, all_flows[i].record_count);
-
-        if (all_flows[i].out_fp) {
-            fclose(all_flows[i].out_fp);
-        }
-    }
-
-    free(all_flows);
+    summary();
     free_flow_table();
 
     // Record the end time
