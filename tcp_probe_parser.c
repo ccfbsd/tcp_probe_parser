@@ -285,7 +285,7 @@ main(int argc, char* argv[]) {
 
         pos = strstr(line, "sock_cookie=");
         if (pos) {
-            sscanf(pos, "sock_cookie=%" SCNu64, &sock_cookie);
+            sscanf(pos, "sock_cookie=%" SCNx64, &sock_cookie);
         }
 
         FlowInfo* flow = find_or_create_flow(sock_cookie, src, dest, family,
