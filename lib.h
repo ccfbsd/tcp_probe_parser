@@ -46,7 +46,7 @@ typedef struct FlowInfo {
     struct FlowInfo* next;
 } FlowInfo;
 
-FlowInfo* flow_table[HASH_SIZE] = {NULL};
+FlowInfo* hashed_flow_table[HASH_SIZE] = {NULL};
 const char plot_dir_name[] = "plot_files";
 char output_dir[NAME_LEN] = {};
 
@@ -61,7 +61,7 @@ find_or_create_flow(uint64_t sock_cookie, const char* src, const char* dest,
                     const char*  family, bool write_all)
 {
     unsigned idx = hash_sock_cookie(sock_cookie);
-    FlowInfo* curr = flow_table[idx];
+    FlowInfo* curr = hashed_flow_table[idx];
     while (curr) {
         if (curr->sock_cookie == sock_cookie) {
             return curr;
@@ -92,17 +92,21 @@ find_or_create_flow(uint64_t sock_cookie, const char* src, const char* dest,
         }
     }
 
-    new_flow->next = flow_table[idx];
-    flow_table[idx] = new_flow;
+    new_flow->next = hashed_flow_table[idx];
+    hashed_flow_table[idx] = new_flow;
 
     return new_flow;
 }
 
+/* collect flows into a continued block of memory and then free the memory
+ * for the hashed_flow_table[]
+ */
 void
-collect_flows(FlowInfo** list, size_t* flow_count, size_t* total_records)
+collect_flows_and_free_flow_table(FlowInfo** list, size_t* flow_count,
+                                  size_t* total_records)
 {
     for (int i = 0; i < HASH_SIZE; i++) {
-        for (FlowInfo* curr = flow_table[i]; curr; curr = curr->next) {
+        for (FlowInfo* curr = hashed_flow_table[i]; curr; curr = curr->next) {
             (*flow_count)++;
             (*total_records) += curr->record_count;
         }
@@ -116,9 +120,12 @@ collect_flows(FlowInfo** list, size_t* flow_count, size_t* total_records)
 
     size_t idx = 0;
     for (int i = 0; i < HASH_SIZE; i++) {
-        for (FlowInfo* curr = flow_table[i]; curr; curr = curr->next) {
-            (*list)[idx] = *curr;
-            idx++;
+        FlowInfo* curr = hashed_flow_table[i];
+        while (curr != NULL) {
+            FlowInfo* tmp = curr;
+            curr = curr->next;
+            (*list)[idx++] = *tmp;
+            free(tmp);
         }
     }
 }
@@ -138,25 +145,12 @@ print_usage(const char* prog) {
 }
 
 void
-free_flow_table(void)
-{
-    for (int i = 0; i < HASH_SIZE; i++) {
-        FlowInfo* curr = flow_table[i];
-        while (curr != NULL) {
-            FlowInfo* tmp = curr;
-            curr = curr->next;
-            free(tmp);
-        }
-    }
-}
-
-void
 summary()
 {
     FlowInfo* all_flows = NULL;
     size_t flow_count = 0;
     size_t total_cnts = 0;
-    collect_flows(&all_flows, &flow_count, &total_cnts);
+    collect_flows_and_free_flow_table(&all_flows, &flow_count, &total_cnts);
     qsort(all_flows, flow_count, sizeof(FlowInfo), cmp_by_record_count);
 
     printf("\nSorted Flow Summary:\n"

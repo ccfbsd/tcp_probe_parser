@@ -153,7 +153,6 @@ main(int argc, char* argv[]) {
     }
 
     summary();
-    free_flow_table();
 
     // Record the end time
     gettimeofday(&end, NULL);
