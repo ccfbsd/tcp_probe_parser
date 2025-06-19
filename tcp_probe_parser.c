@@ -1,3 +1,13 @@
+/*
+ ============================================================================
+ Name        : tcp_probe_parser.c
+ Author      : Cheng Cui
+ Version     :
+ Copyright   : see the LICENSE file
+ Description : Check tcp_probe log stats in C, Ansi-style
+ ============================================================================
+ */
+
 #include <errno.h>
 #include <getopt.h>
 #include <inttypes.h>
