@@ -42,6 +42,12 @@ typedef struct FlowInfo {
     char dest[DEST_STR_LEN];
     char family[PROTOCOL_STR_LEN];  // big enough for "AF_INET6\0"
     int record_count;
+    uint64_t srtt_sum;
+    uint32_t srtt_min;
+    uint32_t srtt_max;
+    uint64_t cwnd_sum;
+    uint32_t cwnd_min;
+    uint32_t cwnd_max;
     FILE* out_fp;
     struct FlowInfo* next;
 } FlowInfo;
@@ -80,6 +86,12 @@ find_or_create_flow(uint64_t sock_cookie, const char* src, const char* dest,
     strncpy(new_flow->dest, dest, DEST_STR_LEN - 1);
     strncpy(new_flow->family, family, PROTOCOL_STR_LEN - 1);
     new_flow->record_count = 0;
+    new_flow->srtt_sum = 0;
+    new_flow->srtt_min = UINT32_MAX;
+    new_flow->srtt_max = 0;
+    new_flow->cwnd_sum = 0;
+    new_flow->cwnd_min = UINT32_MAX;
+    new_flow->cwnd_max = 0;
 
     if (write_all) {
         char fname[MAX_NAME_LEN];
@@ -157,9 +169,15 @@ summary()
            "    flow_count: %zu\n    total_cnts: %zu\n",
            flow_count, total_cnts);
     for (unsigned i = 0; i < flow_count; i++) {
-        printf("    flowid: %" PRIu64 ", family: %s, addr: %s<->%s, cnts: %d\n",
+        printf("    flowid: %" PRIu64 ", family: %s, addr: %s<->%s, cnts: %d, "
+               "avg_srtt: %" PRIu64 ", min_srtt: %u, max_srtt: %u µs, "
+               "avg_cwnd: %" PRIu64 ", min_cwnd: %u, max_cwnd: %u segments\n",
             all_flows[i].sock_cookie, all_flows[i].family, all_flows[i].src,
-            all_flows[i].dest, all_flows[i].record_count);
+            all_flows[i].dest, all_flows[i].record_count,
+            all_flows[i].srtt_sum / all_flows[i].record_count,
+            all_flows[i].srtt_min, all_flows[i].srtt_max,
+            all_flows[i].cwnd_sum / all_flows[i].record_count,
+            all_flows[i].cwnd_min, all_flows[i].cwnd_max);
 
         if (all_flows[i].out_fp) {
             fclose(all_flows[i].out_fp);

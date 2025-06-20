@@ -138,6 +138,20 @@ main(int argc, char* argv[]) {
         FlowInfo* flow = find_or_create_flow(sock_cookie, src, dest, family,
                                              output_all);
         flow->record_count++;
+        flow->srtt_sum += srtt;
+        if (flow->srtt_min > srtt) {
+            flow->srtt_min = srtt;
+        }
+        if (flow->srtt_max < srtt) {
+            flow->srtt_max = srtt;
+        }
+        flow->cwnd_sum += cwnd;
+        if (flow->cwnd_min > cwnd) {
+            flow->cwnd_min = cwnd;
+        }
+        if (flow->cwnd_max < cwnd) {
+            flow->cwnd_max = cwnd;
+        }
 
         if (output_all && flow->out_fp) {
             fprintf(flow->out_fp, "%.6f %u %u\n", relative_ts, cwnd, srtt);
