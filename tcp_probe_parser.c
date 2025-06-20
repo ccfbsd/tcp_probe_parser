@@ -56,11 +56,15 @@ main(int argc, char* argv[]) {
         perror("fopen trace file");
         exit(EXIT_FAILURE);
     }
+
+    /* try to create the plot directory (ignore if it already exists) */
     if (output_all || specific_cookie_set) {
         if (mkdir(output_dir, 0755) == -1 && errno != EEXIST) {
             perror("mkdir failed");
             exit(EXIT_FAILURE);
         }
+        /* clean the directory before writing */
+        clean_directory(output_dir);
     }
 
     FILE* specific_out = NULL;

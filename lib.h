@@ -11,6 +11,7 @@
 #ifndef LIB_H_
 #define LIB_H_
 
+#include <dirent.h>
 #include <errno.h>
 #include <getopt.h>
 #include <inttypes.h>
@@ -55,6 +56,34 @@ typedef struct FlowInfo {
 FlowInfo* hashed_flow_table[HASH_SIZE] = {NULL};
 const char plot_dir_name[] = "plot_files";
 char output_dir[NAME_LEN] = {};
+
+void clean_directory(const char *dir_path) {
+    DIR *dir = opendir(dir_path);
+    if (!dir) {
+        perror("opendir");
+        return;
+    }
+
+    struct dirent *entry = NULL;
+    char file_path[MAX_LINE_LEN] = {};
+
+    while ((entry = readdir(dir)) != NULL) {
+        // Skip "." and ".."
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+            continue;
+        int len = snprintf(file_path, sizeof(file_path), "%s/%s", dir_path,
+                           entry->d_name);
+        if (len < 0 || len >= (int)sizeof(file_path)) {
+            fprintf(stderr, "%s Error: path too long\n", __FUNCTION__);
+            continue;
+        }
+        if (unlink(file_path) != 0) {
+            perror("unlink");
+        }
+    }
+
+    closedir(dir);
+}
 
 unsigned
 hash_sock_cookie(uint64_t sock_cookie)
