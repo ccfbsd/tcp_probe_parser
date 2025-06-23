@@ -97,13 +97,15 @@ main(int argc, char* argv[]) {
         uint64_t sock_cookie = 0;
         uint32_t cwnd = 0, srtt = 0;
 
-        // Extract timestamp from the beginning (e.g., "3335.244969:")
+        /* extract timestamp from the beginning */
         if (sscanf(line, "%*s %*s %*s %lf", &timestamp) != 1) {
-            fprintf(stderr, "Failed to parse timestamp: %s", line);
+            if (line[0] != '#') {
+                /* if contains something unacceptable other than comments */
+                fprintf(stderr, "Failed to parse timestamp: %s", line);
+            }
             continue;
         }
 
-        // First timestamp reference
         if (first_timestamp < 0) {
             first_timestamp = timestamp;
         }
