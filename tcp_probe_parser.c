@@ -99,10 +99,6 @@ main(int argc, char* argv[]) {
 
         /* extract timestamp from the beginning */
         if (sscanf(line, "%*s %*s %*s %lf", &timestamp) != 1) {
-            if (line[0] != '#') {
-                /* if contains something unacceptable other than comments */
-                fprintf(stderr, "Failed to parse timestamp: %s", line);
-            }
             continue;
         }
 
