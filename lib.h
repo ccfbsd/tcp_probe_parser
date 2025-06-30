@@ -49,6 +49,7 @@ typedef struct FlowInfo {
     uint64_t cwnd_sum;
     uint32_t cwnd_min;
     uint32_t cwnd_max;
+    uint32_t last_cwnd;
     FILE* out_fp;
     struct FlowInfo* next;
 } FlowInfo;
@@ -121,6 +122,7 @@ find_or_create_flow(uint64_t sock_cookie, const char* src, const char* dest,
     new_flow->cwnd_sum = 0;
     new_flow->cwnd_min = UINT32_MAX;
     new_flow->cwnd_max = 0;
+    new_flow->last_cwnd = 0;
 
     if (write_all) {
         char fname[MAX_NAME_LEN];
@@ -172,16 +174,18 @@ collect_flows_and_free_flow_table(FlowInfo** list, size_t* flow_count,
 }
 
 int
-cmp_by_record_count(const void* a, const void* b) {
+cmp_by_record_count(const void* a, const void* b)
+{
     FlowInfo* f1 = (FlowInfo*)a;
     FlowInfo* f2 = (FlowInfo*)b;
     return f2->record_count - f1->record_count;
 }
 
 void
-print_usage(const char* prog) {
-    fprintf(stderr, "Usage: %s -f trace_file [-p name] [-a] [-s sock_cookie]\n",
-            prog);
+print_usage(const char* prog)
+{
+    fprintf(stderr, "Usage: %s -f trace_file [-p name] [-c] [-a] "
+            "[-s sock_cookie]\n", prog);
     exit(EXIT_FAILURE);
 }
 

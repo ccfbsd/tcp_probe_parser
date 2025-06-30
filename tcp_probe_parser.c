@@ -20,12 +20,13 @@ main(int argc, char* argv[]) {
     bool output_all = false;
     uint64_t specific_cookie = 0;
     bool specific_cookie_set = false;
+    bool cwnd_filter = false;
 
     /* default output directory name */
     snprintf(output_dir, sizeof(output_dir), "%s", plot_dir_name);
 
     int opt;
-    while ((opt = getopt(argc, argv, "f:p:as:")) != -1) {
+    while ((opt = getopt(argc, argv, "f:p:cas:")) != -1) {
         switch (opt) {
             case 'f':
                 trace_file = optarg;
@@ -34,6 +35,9 @@ main(int argc, char* argv[]) {
                 printf("The prefix for the plot file is: %s\n", optarg);
                 snprintf(output_dir, sizeof(output_dir), "%s.%s", optarg,
                          plot_dir_name);
+                break;
+            case 'c':
+                cwnd_filter = true;
                 break;
             case 'a':
                 output_all = true;
@@ -153,6 +157,14 @@ main(int argc, char* argv[]) {
         }
         if (flow->cwnd_max < cwnd) {
             flow->cwnd_max = cwnd;
+        }
+
+        if (cwnd_filter) {
+            if (flow->last_cwnd == cwnd) {
+                continue;
+            } else {
+                flow->last_cwnd = cwnd;
+            }
         }
 
         if (output_all && flow->out_fp) {
