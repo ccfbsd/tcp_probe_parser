@@ -50,6 +50,7 @@ typedef struct FlowInfo {
     uint32_t cwnd_min;
     uint32_t cwnd_max;
     uint32_t last_cwnd;
+    uint32_t counter;
     FILE* out_fp;
     struct FlowInfo* next;
 } FlowInfo;
@@ -123,6 +124,7 @@ find_or_create_flow(uint64_t sock_cookie, const char* src, const char* dest,
     new_flow->cwnd_min = UINT32_MAX;
     new_flow->cwnd_max = 0;
     new_flow->last_cwnd = 0;
+    new_flow->counter = 0;
 
     if (write_all) {
         char fname[MAX_NAME_LEN];

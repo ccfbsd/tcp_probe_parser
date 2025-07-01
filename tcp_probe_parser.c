@@ -21,6 +21,8 @@ main(int argc, char* argv[]) {
     uint64_t specific_cookie = 0;
     bool specific_cookie_set = false;
     bool cwnd_filter = false;
+    /* if cwnd_filter on, number of events between generating a log message */
+    uint32_t events_per_log = 100;
 
     /* default output directory name */
     snprintf(output_dir, sizeof(output_dir), "%s", plot_dir_name);
@@ -161,9 +163,13 @@ main(int argc, char* argv[]) {
 
         if (cwnd_filter) {
             if (flow->last_cwnd == cwnd) {
-                continue;
+                flow->counter = (flow->counter + 1) % events_per_log;
+                if (flow->counter > 0) {
+                    continue;
+                }
             } else {
                 flow->last_cwnd = cwnd;
+                flow->counter = 0;
             }
         }
 
